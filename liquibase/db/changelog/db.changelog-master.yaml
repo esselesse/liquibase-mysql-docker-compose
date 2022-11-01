@@ -1,0 +1,3 @@
+databaseChangeLog:
+    - include:
+        - file: .\sql\db-init.mysql.sql

@@ -1,0 +1,40 @@
+version: '3.9'
+services:
+    # this naming is used in .env file too!
+    mysql-docker:
+        container_name: mysql
+        image: mysql:8.0.31
+        restart: always
+        ports:
+            - "${MYSQL_PORT}:${MYSQL_PORT}"
+        volumes:
+            - ${MYSQL_DATA}:/var/lib/mysql
+        environment:
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_USER=${MYSQL_USER}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        env_file:
+            - .env
+        healthcheck:
+            # healthcheck for DB itself
+            test: mysql sys --user=${MYSQL_ROOT_USER} --password=${MYSQL_ROOT_PASSWORD} --silent --execute "SELECT 1;"
+            interval: 3s
+            timeout: 10s
+            retries: 10
+    liquibase:
+        container_name: liquibase
+        image: "liquibase/liquibase"
+        environment:
+            # this one need to install mysql-driver into liquibase container
+            - INSTALL_MYSQL=true
+        env_file:
+            - .env
+        depends_on:
+            mysql-docker:
+                condition: service_healthy
+        links: 
+            - mysql-docker
+        volumes:
+            - ./liquibase/db/changeLog/:/liquibase/changelog/
+        command: update --username=${MYSQL_USER} --password=${MYSQL_PASSWORD} --changeLogFile=${CHANGELOG_FILE} --url=${MYSQL_URL}
